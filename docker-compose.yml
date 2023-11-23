@@ -1,0 +1,11 @@
+version: "3.3"
+services:
+  monitortelegrambot:
+    build: .
+    restart: always
+    container_name: monitortelegrambot
+    volumes:
+      - ./bot:/monitortelegrambot
+    command: python -u main.py
+    environment:
+      PYTHONUNBUFFERED: 1
