@@ -19,6 +19,7 @@ def start(message):
     con = sqlite3.connect("database.sqlite3", check_same_thread=False)
     cursor = con.cursor()
     cursor.execute("CREATE TABLE IF NOT EXISTS sites (id int auto_increment primary key, site_name VARCHAR(512))")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS uniq ON sites(site_name)")
     con.commit()
     cursor.close()
     con.close()
@@ -79,11 +80,10 @@ def site_list(callback):
 # Добавление нового сайта
 def add_success(message):
     site_name = message.text.strip()
-    if re.findall("(?P<url>https?://[^\s]+)", site_name):
-        con = sqlite3.connect("database.sqlite3", check_same_thread=False)
-        cursor = con.cursor()
-        cursor.execute("INSERT INTO sites (site_name) VALUES ('%s')" % (site_name,))
+    con = sqlite3.connect("database.sqlite3", check_same_thread=False)
+    cursor = con.cursor()
 
+    if re.findall("(?P<url>https?://[^\s]+)", site_name):
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton('Добавить сайт', callback_data='add_site')
         btn2 = types.InlineKeyboardButton('Список сайтов', callback_data='site_list')
@@ -92,11 +92,20 @@ def add_success(message):
         markup.row(btn2)
         markup.row(btn3)
 
-        bot.send_message(message.chat.id, f'Добавлено: {site_name}', reply_markup=markup)
+        try:
+            cursor.execute("INSERT INTO sites (site_name) VALUES ('%s')" % (site_name,))
+
+        except sqlite3.Error:
+            bot.send_message(message.chat.id, f'{site_name} уже существует', reply_markup=markup)
+            con.rollback()
+
+        else:
+            bot.send_message(message.chat.id, f'Добавлено: {site_name}', reply_markup=markup)
 
         con.commit()
         cursor.close()
         con.close()
+
     else:
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton('Добавить сайт', callback_data='add_site')
@@ -110,11 +119,9 @@ def add_success(message):
 def del_success(message):
     site_name = message.text.strip()
     if re.findall("(?P<url>https?://[^\s]+)", site_name):
+
         con = sqlite3.connect("database.sqlite3", check_same_thread=False)
         cursor = con.cursor()
-
-        del_site = "DELETE FROM `sites` WHERE site_name = ?"
-        cursor.execute(del_site, (site_name,))
 
         markup = types.InlineKeyboardMarkup()
         btn1 = types.InlineKeyboardButton('Добавить сайт', callback_data='add_site')
@@ -124,7 +131,14 @@ def del_success(message):
         markup.row(btn2)
         markup.row(btn3)
 
-        bot.send_message(message.chat.id, f'Удалено: {site_name}', reply_markup=markup)
+        cursor.execute("SELECT * FROM `sites` WHERE site_name = ?", (site_name,))
+        check_delete = cursor.fetchone()
+
+        if check_delete:
+            cursor.execute("DELETE FROM `sites` WHERE site_name = ?", (site_name,))
+            bot.send_message(message.chat.id, f'Удалено: {site_name}', reply_markup=markup)
+        else:
+            bot.send_message(message.chat.id, f'{site_name} не существует', reply_markup=markup)
 
         con.commit()
         cursor.close()
