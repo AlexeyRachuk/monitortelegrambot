@@ -7,8 +7,8 @@ import re
 import sqlite3
 
 bot = telebot.TeleBot('2122815268:AAG2zN_9FVW4kP9wDXkReP_TmtjRKexn0aA')
-# Интервал проверки
-check_interval = 5
+# Интервал проверки в секундах
+check_interval = 3600
 
 
 # Запуск бота, при запуске в первый раз записывает айди пользователя в chat_id.txt для рассылки в monitoring, в базу записываются только сайты
@@ -35,14 +35,36 @@ def start(message):
                      reply_markup=markup)
 
 
-# Обработка help
-@bot.message_handler(commands=['help'])
+# Обработчик меню
+@bot.message_handler(commands=['menu'])
 def help_handler(message):
     markup = types.InlineKeyboardMarkup()
     btn1 = types.InlineKeyboardButton('Список сайтов', callback_data='site_list')
+    btn2 = types.InlineKeyboardButton('Добавить сайт', callback_data='add_site')
+    btn3 = types.InlineKeyboardButton('Удалить сайт', callback_data='delete_site')
     markup.row(btn1)
+    markup.row(btn2)
+    markup.row(btn3)
     bot.send_message(message.chat.id,
-                     'Данный бот проверяет доступность всех сайтов добавленных в базу каждые 5 минут и в случае ошибки будет отправлять сообщение с сайтом и кодом ошибки.',
+                     'Меню',
+                     reply_markup=markup)
+
+    # Обработчик help
+
+
+@bot.message_handler(commands=['help'])
+def help_handler(message):
+    markup = types.InlineKeyboardMarkup()
+    btn0 = types.InlineKeyboardButton('Написать мне', url='https://t.me/raccoon_meh')
+    btn1 = types.InlineKeyboardButton('Список сайтов', callback_data='site_list')
+    btn2 = types.InlineKeyboardButton('Добавить сайт', callback_data='add_site')
+    btn3 = types.InlineKeyboardButton('Удалить сайт', callback_data='delete_site')
+    markup.row(btn0)
+    markup.row(btn1)
+    markup.row(btn2)
+    markup.row(btn3)
+    bot.send_message(message.chat.id,
+                     'Данный бот следит за состоянием сайтов. Если нужна помощь или обнаружены ошибки, напиши мне.',
                      reply_markup=markup)
 
 
@@ -77,7 +99,7 @@ def site_list(callback):
         bot.register_next_step_handler(callback.message, del_success)
 
 
-# Добавление нового сайта
+# Добавление нового сайта, проверка уже существующего
 def add_success(message):
     site_name = message.text.strip()
     con = sqlite3.connect("database.sqlite3", check_same_thread=False)
@@ -115,7 +137,7 @@ def add_success(message):
         bot.send_message(message.chat.id, f'Ошибка в адресе или указан не полный url', reply_markup=markup)
 
 
-# Удаление сайта
+# Удаление сайта, провка на наличии при удалении
 def del_success(message):
     site_name = message.text.strip()
     if re.findall("(?P<url>https?://[^\s]+)", site_name):
