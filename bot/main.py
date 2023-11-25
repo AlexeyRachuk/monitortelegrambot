@@ -5,10 +5,11 @@ from telebot import types
 import requests
 import re
 import sqlite3
+import urllib.request
 
 bot = telebot.TeleBot('2122815268:AAG2zN_9FVW4kP9wDXkReP_TmtjRKexn0aA')
 # Интервал проверки в секундах
-check_interval = 3600
+check_interval = 5
 
 
 # Запуск бота, при запуске в первый раз записывает айди пользователя в chat_id.txt для рассылки в monitoring, в базу записываются только сайты
@@ -184,11 +185,12 @@ def monitoring():
         monitoring_list = cursor.fetchall()
 
         for el in monitoring_list:
-            st_site = requests.get(el[1])
-            if st_site.status_code != 200:
+            try:
+                urllib.request.urlopen(el[1])
+            except urllib.error.URLError:
                 for i in open('chat_id.txt', 'r').readlines():
-                    bot.send_message(i, f'Не работает: {el[1]} код ошибки {st_site.status_code}')
-                    time.sleep(check_interval)
+                    bot.send_message(i, f'Нет соединения с : {el[1]}')
+                time.sleep(check_interval)
 
         cursor.close()
         con.close()
