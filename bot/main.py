@@ -186,11 +186,14 @@ def monitoring():
 
         for el in monitoring_list:
             try:
-                urllib.request.urlopen(el[1])
-            except urllib.error.URLError:
+                check_site = requests.get(el[1])
+                if check_site.status_code != 200 and check_site.status_code != 403:
+                    for i in open('chat_id.txt', 'r').readlines():
+                        bot.send_message(i, f'Не работает: {el[1]}. Код ошибки {check_site.status_code}')
+            except requests.exceptions.RequestException:
                 for i in open('chat_id.txt', 'r').readlines():
-                    bot.send_message(i, f'Нет соединения с : {el[1]}')
-                time.sleep(check_interval)
+                    bot.send_message(i, f'Не работает: {el[1]}. Не соединения c ресурсом.')
+        time.sleep(check_interval)
 
         cursor.close()
         con.close()
