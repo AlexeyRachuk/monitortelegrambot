@@ -5,7 +5,6 @@ from telebot import types
 import requests
 import re
 import sqlite3
-import urllib.request
 
 bot = telebot.TeleBot('2122815268:AAG2zN_9FVW4kP9wDXkReP_TmtjRKexn0aA')
 # Интервал проверки в секундах
